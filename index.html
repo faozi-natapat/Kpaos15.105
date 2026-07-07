@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บัญชีรายรับ-รายจ่ายห้อง ม.1/5</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#C79A3B">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper: #EEF1E8;
+    --paper-line: #D8DCCB;
+    --ink: #253238;
+    --ink-soft: #5A6B70;
+    --income: #3A7D5C;
+    --income-bg: #E4EFE6;
+    --expense: #A34452;
+    --expense-bg: #F3E4E3;
+    --gold: #C79A3B;
+    --gold-dark: #9C7726;
+    --margin-red: #B5423D;
+    --card: #FBFAF5;
+    --radius: 10px;
+    --shadow: 0 2px 10px rgba(37,50,56,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 34px;
+    font-family: 'Sarabun', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .ledger-page{
+    position: relative;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 36px 28px 60px 56px;
+  }
+  .margin-rule{
+    position: absolute;
+    top: 0;
+    left: 34px;
+    bottom: 0;
+    width: 2px;
+    background: var(--margin-red);
+    opacity: 0.55;
+  }
+  header{
+    margin-bottom: 28px;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-family:'Kanit',sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: rgba(199,154,59,0.15);
+    border: 1px solid rgba(199,154,59,0.4);
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-bottom: 10px;
+  }
+  h1{
+    font-family:'Kanit',sans-serif;
+    font-weight: 700;
+    font-size: clamp(24px, 4vw, 32px);
+    margin: 0 0 4px 0;
+    line-height: 1.25;
+  }
+  .subtitle{
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin: 0;
+  }
+  .admin-bar{
+    margin-top: 18px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn{
+    font-family:'Sarabun',sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-gold{
+    background: var(--gold);
+    color: #3A2E0E;
+  }
+  .btn-gold:hover{ background: var(--gold-dark); color:#fff; }
+  .btn-outline{
+    background: transparent;
+    border: 1.5px solid var(--ink-soft);
+    color: var(--ink);
+  }
+  .btn-outline:hover{ background: rgba(37,50,56,0.06); }
+  .stamp{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    font-family:'Kanit',sans-serif;
+    font-weight:600;
+    font-size: 13px;
+    color: var(--gold-dark);
+    border: 2px solid var(--gold-dark);
+    border-radius: 100px;
+    padding: 6px 14px;
+    transform: rotate(-3deg);
+    background: rgba(199,154,59,0.08);
+  }
+  .stamp svg{ width:16px; height:16px; }
+
+  .summary{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .card{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+    border-top: 3px solid var(--ink-soft);
+  }
+  .card.income{ border-top-color: var(--income); }
+  .card.expense{ border-top-color: var(--expense); }
+  .card.balance{ border-top-color: var(--gold-dark); }
+  .card-label{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .card-value{
+    font-family:'Kanit',sans-serif;
+    font-weight: 700;
+    font-size: clamp(18px, 3vw, 24px);
+  }
+  .card.income .card-value{ color: var(--income); }
+  .card.expense .card-value{ color: var(--expense); }
+  .card.balance .card-value{ color: var(--gold-dark); }
+
+  .panel{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .panel h2{
+    font-family:'Kanit',sans-serif;
+    font-size: 17px;
+    margin: 0 0 14px 0;
+  }
+  .form-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+  .field input, .field select{
+    font-family:'Sarabun',sans-serif;
+    font-size: 14px;
+    padding: 9px 10px;
+    border: 1.5px solid #C9CDBE;
+    border-radius: 7px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .field input:focus, .field select:focus{
+    outline: none;
+    border-color: var(--gold-dark);
+  }
+  .type-toggle{
+    display:flex;
+    gap: 8px;
+  }
+  .type-toggle label{
+    flex:1;
+    text-align:center;
+    padding: 9px 0;
+    border-radius: 7px;
+    border: 1.5px solid #C9CDBE;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .type-toggle input{ display:none; }
+  .type-toggle input:checked + span{ color: inherit; }
+  .type-toggle .opt-income{ border-color: var(--income); color: var(--income); }
+  .type-toggle .opt-income.active{ background: var(--income-bg); }
+  .type-toggle .opt-expense{ border-color: var(--expense); color: var(--expense); }
+  .type-toggle .opt-expense.active{ background: var(--expense-bg); }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th{
+    text-align: left;
+    font-family:'Kanit',sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 2px solid var(--paper-line);
+  }
+  tbody td{
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--paper-line);
+    vertical-align: top;
+  }
+  tbody tr:hover{ background: rgba(199,154,59,0.06); }
+  .amount-income{ color: var(--income); font-weight: 600; }
+  .amount-expense{ color: var(--expense); font-weight: 600; }
+  .type-pill{
+    display:inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 100px;
+  }
+  .type-pill.income{ background: var(--income-bg); color: var(--income); }
+  .type-pill.expense{ background: var(--expense-bg); color: var(--expense); }
+  .del-btn{
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-size: 13px;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .del-btn:hover{ color: var(--expense); }
+  .table-wrap{ overflow-x: auto; }
+  .empty-state{
+    text-align:center;
+    padding: 30px 10px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  .modal-backdrop{
+    position: fixed; inset:0;
+    background: rgba(37,50,56,0.45);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal{
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  }
+  .modal h3{
+    font-family:'Kanit',sans-serif;
+    margin: 0 0 6px 0;
+    font-size: 17px;
+  }
+  .modal p{
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0 0 14px 0;
+  }
+  .modal input{
+    width:100%;
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 10px;
+    border: 1.5px solid #C9CDBE;
+    border-radius: 7px;
+    margin-bottom: 10px;
+  }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .modal-error{ color: var(--expense); font-size: 13px; margin: -4px 0 10px 0; min-height: 16px; }
+
+  .footnote{
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align:center;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px){
+    .ledger-page{ padding: 28px 16px 48px 34px; }
+    .margin-rule{ left: 18px; }
+    .summary{ grid-template-columns: 1fr; }
+    .form-row{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="ledger-page">
+  <div class="margin-rule"></div>
+  <header>
+    <span class="eyebrow">สมุดบัญชีประจำห้อง ม.1/5</span>
+    <h1>บัญชีรายรับ-รายจ่ายห้องเรียน</h1>
+    <p class="subtitle">ทุกคนดูรายการได้ · เพิ่ม/ลบรายการได้เฉพาะแอดมินเท่านั้น</p>
+    <div class="admin-bar" id="adminBar"></div>
+  </header>
+
+  <section class="summary">
+    <div class="card income">
+      <div class="card-label">รายรับรวม</div>
+      <div class="card-value" id="sumIncome">฿0.00</div>
+    </div>
+    <div class="card expense">
+      <div class="card-label">รายจ่ายรวม</div>
+      <div class="card-value" id="sumExpense">฿0.00</div>
+    </div>
+    <div class="card balance">
+      <div class="card-label">คงเหลือ</div>
+      <div class="card-value" id="sumBalance">฿0.00</div>
+    </div>
+  </section>
+
+  <section class="panel" id="addPanel" style="display:none;">
+    <h2>เพิ่มรายการใหม่</h2>
+    <div class="form-row">
+      <div class="field">
+        <label>วันที่</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="field">
+        <label>ประเภท</label>
+        <div class="type-toggle">
+          <label class="opt-income active" id="lblIncome">
+            <input type="radio" name="ftype" value="income" checked>
+            <span>รับ</span>
+          </label>
+          <label class="opt-expense" id="lblExpense">
+            <input type="radio" name="ftype" value="expense">
+            <span>จ่าย</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field" style="grid-column: span 2;">
+        <label>รายการ</label>
+        <input type="text" id="fDesc" placeholder="เช่น ค่าขนม, ซื้ออุปกรณ์ห้อง">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>จำนวนเงิน (บาท)</label>
+        <input type="number" id="fAmount" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="field" style="justify-content:flex-end;">
+        <button class="btn btn-gold" id="btnAdd" style="width:100%;">+ บันทึกรายการ</button>
+      </div>
+    </div>
+    <div class="modal-error" id="formError"></div>
+  </section>
+
+  <section class="panel">
+    <h2>รายการทั้งหมด</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่</th>
+            <th>รายการ</th>
+            <th>ประเภท</th>
+            <th style="text-align:right;">จำนวนเงิน</th>
+            <th id="thAction" style="display:none;"></th>
+          </tr>
+        </thead>
+        <tbody id="txBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        ยังไม่มีรายการบันทึกไว้
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">
+    ข้อมูลรายรับรายจ่ายนี้เก็บบน Firebase แบบ "แชร์กลาง" ทุกคนที่เปิดเว็บนี้จะเห็นรายการเดียวกันแบบเรียลไทม์<br>
+    รหัสแอดมินเป็นเพียงการป้องกันเบื้องต้น ไม่ใช่ระบบความปลอดภัยระดับสูง — ควรแชร์รหัสเฉพาะครู/ผู้รับผิดชอบเท่านั้น
+  </p>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+// ============================================================
+// ตั้งค่า Firebase ของคุณตรงนี้ก่อนใช้งาน!
+// ไปที่ https://console.firebase.google.com > สร้างโปรเจกต์ใหม่ (ฟรี)
+// > Build > Firestore Database > สร้างฐานข้อมูล (โหมดทดสอบ)
+// > Project settings > เลื่อนลงมา "Your apps" > เพิ่มแอปเว็บ (</>) > คัดลอกค่ามาใส่ด้านล่างนี้
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDXFfbhvmRbdWb8ZfNlDs6rfyas4pHtTGQ",
+  authDomain: "kpaos15-105.firebaseapp.com",
+  projectId: "kpaos15-105",
+  storageBucket: "kpaos15-105.firebasestorage.app",
+  messagingSenderId: "653040296728",
+  appId: "1:653040296728:web:0e00e8beac3e6f187fb46d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const ledgerDocRef = db.collection('classroomLedger').doc('main');
+
+let transactions = [];
+let adminPinSet = false;
+let isAdmin = false;
+
+function fmtMoney(n){
+  return '฿' + Number(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(d){
+  try{
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+  }catch(e){ return d; }
+}
+function simpleHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(36);
+}
+
+function loadAll(){
+  // ฟังข้อมูลแบบเรียลไทม์ — ทุกคนที่เปิดหน้านี้จะเห็นการเปลี่ยนแปลงทันทีโดยไม่ต้องรีเฟรช
+  ledgerDocRef.onSnapshot((snap) => {
+    const data = snap.exists ? snap.data() : {};
+    transactions = Array.isArray(data.transactions) ? data.transactions : [];
+    adminPinSet = !!data.adminPinHash;
+    renderAll();
+  }, (err) => {
+    console.error('เชื่อมต่อฐานข้อมูลล้มเหลว', err);
+    document.getElementById('adminBar').innerHTML =
+      '<span style="color:#A34452;font-size:13px;">เชื่อมต่อฐานข้อมูลไม่สำเร็จ — ตรวจสอบค่า firebaseConfig และ Firestore rules</span>';
+  });
+}
+
+async function saveTransactions(){
+  try{
+    await ledgerDocRef.set({ transactions }, { merge: true });
+  }catch(e){
+    console.error('บันทึกรายการล้มเหลว', e);
+    alert('บันทึกรายการล้มเหลว กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+  }
+}
+
+async function getStoredPinHash(){
+  const snap = await ledgerDocRef.get();
+  return snap.exists ? snap.data().adminPinHash : null;
+}
+
+async function savePinHash(hash){
+  await ledgerDocRef.set({ adminPinHash: hash }, { merge: true });
+}
+
+function renderAll(){
+  renderAdminBar();
+  renderSummary();
+  renderTable();
+  document.getElementById('addPanel').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('thAction').style.display = isAdmin ? 'table-cell' : 'none';
+}
+
+function renderAdminBar(){
+  const bar = document.getElementById('adminBar');
+  if(isAdmin){
+    bar.innerHTML = `
+      <span class="stamp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 100-8 4 4 0 000 8z"/><path d="M5 21l2-5 5 2 5-2 2 5"/></svg>
+        โหมดแอดมิน
+      </span>
+      <button class="btn btn-outline" id="btnReset">🗑️ รีเซ็ตข้อมูลทั้งหมด</button>
+      <button class="btn btn-outline" id="btnLogout">ออกจากโหมดแอดมิน</button>
+    `;
+    document.getElementById('btnReset').onclick = openResetModal;
+    document.getElementById('btnLogout').onclick = () => { isAdmin = false; renderAll(); };
+  } else {
+    bar.innerHTML = `<button class="btn btn-outline" id="btnLogin">🔒 เข้าสู่ระบบแอดมิน</button>`;
+    document.getElementById('btnLogin').onclick = openAdminModal;
+  }
+}
+
+function renderSummary(){
+  const income = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  document.getElementById('sumIncome').textContent = fmtMoney(income);
+  document.getElementById('sumExpense').textContent = fmtMoney(expense);
+  document.getElementById('sumBalance').textContent = fmtMoney(income - expense);
+}
+
+function renderTable(){
+  const body = document.getElementById('txBody');
+  const empty = document.getElementById('emptyState');
+  const sorted = [...transactions].sort((a,b)=> (b.date||'').localeCompare(a.date||'') || b.createdAt - a.createdAt);
+  if(sorted.length === 0){
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  body.innerHTML = sorted.map(t => `
+    <tr>
+      <td>${fmtDate(t.date)}</td>
+      <td>${escapeHtml(t.desc)}</td>
+      <td><span class="type-pill ${t.type}">${t.type==='income' ? 'รับ' : 'จ่าย'}</span></td>
+      <td style="text-align:right;" class="${t.type==='income'?'amount-income':'amount-expense'}">
+        ${t.type==='income' ? '+' : '-'}${fmtMoney(t.amount)}
+      </td>
+      ${isAdmin ? `<td><button class="del-btn" data-id="${t.id}">ลบ</button></td>` : ''}
+    </tr>
+  `).join('');
+
+  if(isAdmin){
+    body.querySelectorAll('.del-btn').forEach(btn => {
+      btn.onclick = () => deleteTransaction(btn.getAttribute('data-id'));
+    });
+  }
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function deleteTransaction(id){
+  if(!confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) return;
+  transactions = transactions.filter(t => t.id !== id);
+  await saveTransactions();
+  renderAll();
+}
+
+// --- Add form ---
+document.getElementById('fDate').valueAsDate = new Date();
+
+document.querySelectorAll('input[name="ftype"]').forEach(r => {
+  r.addEventListener('change', () => {
+    document.getElementById('lblIncome').classList.toggle('active', r.value==='income' && r.checked);
+    document.getElementById('lblExpense').classList.toggle('active', r.value==='expense' && r.checked);
+    document.querySelectorAll('input[name="ftype"]').forEach(other => {
+      if(other !== r) return;
+    });
+  });
+});
+document.querySelectorAll('input[name="ftype"]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    document.getElementById('lblIncome').classList.remove('active');
+    document.getElementById('lblExpense').classList.remove('active');
+    if(r.checked){
+      document.getElementById(r.value==='income' ? 'lblIncome' : 'lblExpense').classList.add('active');
+    }
+  });
+});
+
+document.getElementById('btnAdd').addEventListener('click', async () => {
+  const date = document.getElementById('fDate').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const type = document.querySelector('input[name="ftype"]:checked').value;
+  const errEl = document.getElementById('formError');
+
+  if(!date || !desc || isNaN(amount) || amount <= 0){
+    errEl.textContent = 'กรุณากรอกวันที่ รายการ และจำนวนเงินให้ครบถ้วน (จำนวนเงินต้องมากกว่า 0)';
+    return;
+  }
+  errEl.textContent = '';
+
+  transactions.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    date, desc, amount, type,
+    createdAt: Date.now()
+  });
+  await saveTransactions();
+
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fDate').valueAsDate = new Date();
+
+  renderAll();
+});
+
+// --- Admin modal ---
+function openAdminModal(){
+  const root = document.getElementById('modalRoot');
+  if(!adminPinSet){
+    root.innerHTML = `
+      <div class="modal-backdrop" id="backdrop">
+        <div class="modal">
+          <h3>ตั้งรหัสแอดมิน</h3>
+          <p>ยังไม่มีการตั้งรหัสแอดมินสำหรับห้องนี้ กรุณาตั้งรหัส (ควรมีเฉพาะครู/ผู้รับผิดชอบเก็บไว้)</p>
+          <input type="password" id="pinInput" placeholder="ตั้งรหัส (อย่างน้อย 4 ตัว)" maxlength="20">
+          <div class="modal-error" id="modalErr"></div>
+          <div class="modal-actions">
+            <button class="btn btn-outline" id="btnCancel">ยกเลิก</button>
+            <button class="btn btn-gold" id="btnSetPin">ตั้งรหัส</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('btnCancel').onclick = closeModal;
+    document.getElementById('btnSetPin').onclick = async () => {
+      const pin = document.getElementById('pinInput').value;
+      const errEl = document.getElementById('modalErr');
+      if(pin.length < 4){
+        errEl.textContent = 'รหัสต้องมีอย่างน้อย 4 ตัวอักษร';
+        return;
+      }
+      try{
+        await savePinHash(simpleHash(pin));
+        adminPinSet = true;
+        isAdmin = true;
+        closeModal();
+        renderAll();
+      }catch(e){
+        errEl.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+      }
+    };
+  } else {
+    root.innerHTML = `
+      <div class="modal-backdrop" id="backdrop">
+        <div class="modal">
+          <h3>เข้าสู่ระบบแ
