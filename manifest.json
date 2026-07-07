@@ -1,0 +1,15 @@
+{
+  "name": "บัญชีรายรับ-รายจ่ายห้อง ม.1/5",
+  "short_name": "บัญชี ม.1/5",
+  "description": "บันทึกรายรับ-รายจ่ายของห้องเรียน เพิ่ม/ลบได้เฉพาะแอดมิน",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF1E8",
+  "theme_color": "#C79A3B",
+  "lang": "th",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
