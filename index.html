@@ -650,4 +650,94 @@ function openAdminModal(){
     root.innerHTML = `
       <div class="modal-backdrop" id="backdrop">
         <div class="modal">
-          <h3>เข้าสู่ระบบแ
+          <h3>เข้าสู่ระบบแอดมิน</h3>
+          <p>กรอกรหัสแอดมินเพื่อเพิ่ม/ลบรายการ</p>
+          <input type="password" id="pinInput" placeholder="รหัสแอดมิน" maxlength="20">
+          <div class="modal-error" id="modalErr"></div>
+          <div class="modal-actions">
+            <button class="btn btn-outline" id="btnCancel">ยกเลิก</button>
+            <button class="btn btn-gold" id="btnLoginConfirm">เข้าสู่ระบบ</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('btnCancel').onclick = closeModal;
+    const tryLogin = async () => {
+      const pin = document.getElementById('pinInput').value;
+      const errEl = document.getElementById('modalErr');
+      try{
+        const storedHash = await getStoredPinHash();
+        if(storedHash && storedHash === simpleHash(pin)){
+          isAdmin = true;
+          closeModal();
+          renderAll();
+        } else {
+          errEl.textContent = 'รหัสไม่ถูกต้อง';
+        }
+      }catch(e){
+        errEl.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+      }
+    };
+    document.getElementById('btnLoginConfirm').onclick = tryLogin;
+    document.getElementById('pinInput').addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') tryLogin();
+    });
+  }
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+function openResetModal(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-backdrop" id="backdrop">
+      <div class="modal">
+        <h3>รีเซ็ตข้อมูลทั้งหมด</h3>
+        <p>การรีเซ็ตจะ<strong>ลบรายการรายรับ-รายจ่ายทั้งหมด</strong>อย่างถาวร กู้คืนไม่ได้ กรุณายืนยันตัวตนด้วยรหัสแอดมินอีกครั้ง</p>
+        <input type="password" id="resetPinInput" placeholder="รหัสแอดมิน" maxlength="20">
+        <div class="modal-error" id="resetErr"></div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" id="btnResetCancel">ยกเลิก</button>
+          <button class="btn btn-gold" id="btnResetConfirm" style="background:var(--expense);color:#fff;">ยืนยันรีเซ็ต</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('btnResetCancel').onclick = closeModal;
+  const tryReset = async () => {
+    const pin = document.getElementById('resetPinInput').value;
+    const errEl = document.getElementById('resetErr');
+    try{
+      const storedHash = await getStoredPinHash();
+      if(storedHash && storedHash === simpleHash(pin)){
+        transactions = [];
+        await saveTransactions();
+        closeModal();
+        renderAll();
+      } else {
+        errEl.textContent = 'รหัสไม่ถูกต้อง';
+      }
+    }catch(e){
+      errEl.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่';
+    }
+  };
+  document.getElementById('btnResetConfirm').onclick = tryReset;
+  document.getElementById('resetPinInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') tryReset();
+  });
+}
+
+loadAll();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch((e) => {
+      console.warn('ติดตั้ง service worker ไม่สำเร็จ', e);
+    });
+  });
+}
+</script>
+</body>
+</html>
