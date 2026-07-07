@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#EEF1E8"/>
+  <rect x="72" y="0" width="6" height="512" fill="#B5423D"/>
+  <circle cx="296" cy="256" r="150" fill="none" stroke="#9C7726" stroke-width="16"/>
+  <circle cx="296" cy="256" r="105" fill="#C79A3B"/>
+  <text x="296" y="300" font-family="Arial, sans-serif" font-size="150" font-weight="bold" fill="#253238" text-anchor="middle">฿</text>
+</svg>
